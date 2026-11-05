@@ -370,6 +370,7 @@ const (
 	fieldPostUp
 	fieldPreDown
 	fieldPostDown
+	fieldKillSwitchExceptions
 	fieldPeerSection
 	fieldPublicKey
 	fieldPresharedKey
@@ -421,6 +422,8 @@ func (s stringSpan) field() field {
 		return fieldPreDown
 	case s.isCaselessSame("PostDown"):
 		return fieldPostDown
+	case s.isCaselessSame("KillSwitchExceptions"):
+		return fieldKillSwitchExceptions
 	}
 	return fieldInvalid
 }
@@ -454,7 +457,7 @@ func (hsa *highlightSpanArray) highlightMultivalueValue(parent, s stringSpan, se
 		} else {
 			hsa.append(parent.s, s, highlightError)
 		}
-	case fieldAddress, fieldAllowedIPs:
+	case fieldAddress, fieldAllowedIPs, fieldKillSwitchExceptions:
 		if !s.isValidNetwork() {
 			hsa.append(parent.s, s, highlightError)
 			break
@@ -539,7 +542,7 @@ func (hsa *highlightSpanArray) highlightValue(parent, s stringSpan, section fiel
 		hsa.append(parent.s, stringSpan{s.s, colon}, highlightHost)
 		hsa.append(parent.s, stringSpan{s.at(colon), 1}, highlightDelimiter)
 		hsa.append(parent.s, stringSpan{s.at(colon + 1), s.len - colon - 1}, highlightPort)
-	case fieldAddress, fieldDNS, fieldAllowedIPs:
+	case fieldAddress, fieldDNS, fieldAllowedIPs, fieldKillSwitchExceptions:
 		hsa.highlightMultivalue(parent, s, section)
 	default:
 		hsa.append(parent.s, s, highlightError)

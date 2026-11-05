@@ -99,7 +99,7 @@ func registerBaseObjects(session uintptr) (*baseObjects, error) {
 	return bo, nil
 }
 
-func EnableFirewall(luid uint64, doNotRestrict bool, restrictToDNSServers []netip.Addr) error {
+func EnableFirewall(luid uint64, doNotRestrict bool, restrictToDNSServers []netip.Addr, exceptions []netip.Prefix) error {
 	if wfpSession != 0 {
 		return errors.New("The firewall has already been enabled")
 	}
@@ -151,6 +151,13 @@ func EnableFirewall(luid uint64, doNotRestrict bool, restrictToDNSServers []neti
 			err = permitNdp(session, baseObjects, 12)
 			if err != nil {
 				return wrapErr(err)
+			}
+
+			if len(exceptions) > 0 {
+				err = permitExceptions(exceptions, session, baseObjects, 12)
+				if err != nil {
+					return wrapErr(err)
+				}
 			}
 
 			/* TODO: actually evaluate if this does anything and if we need this. It's layer 2; our other rules are layer 3.

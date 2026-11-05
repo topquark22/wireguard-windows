@@ -66,6 +66,14 @@ func (conf *Config) ToWgQuick() string {
 	writeField(conf.Interface.Comments, "PreDown", len(conf.Interface.PreDown) > 0, conf.Interface.PreDown)
 	writeField(conf.Interface.Comments, "PostDown", len(conf.Interface.PostDown) > 0, conf.Interface.PostDown)
 
+	if len(conf.Interface.KillSwitchExceptions) > 0 {
+		prefixStrings := make([]string, len(conf.Interface.KillSwitchExceptions))
+		for i, prefix := range conf.Interface.KillSwitchExceptions {
+			prefixStrings[i] = prefix.String()
+		}
+		writeField(conf.Interface.Comments, "KillSwitchExceptions", true, strings.Join(prefixStrings, ", "))
+	}
+
 	table := "auto"
 	if conf.Interface.TableOff {
 		table = "off"

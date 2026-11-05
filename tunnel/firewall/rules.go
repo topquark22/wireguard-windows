@@ -356,6 +356,87 @@ func permitLoopback(session uintptr, baseObjects *baseObjects, weight uint8) err
 	return nil
 }
 
+// Permit traffic to and from the specified networks, regardless of interface.
+func permitExceptions(prefixes []netip.Prefix, session uintptr, baseObjects *baseObjects, weight uint8) error {
+	var conditionsV4, conditionsV6 []wtFwpmFilterCondition0
+	v4Masks := make([]wtFwpV4AddrAndMask, 0, len(prefixes))
+	v6Masks := make([]wtFwpV6AddrAndMask, 0, len(prefixes))
+	for _, prefix := range prefixes {
+		prefix = prefix.Masked()
+		if prefix.Addr().Is4() {
+			v4Masks = append(v4Masks, wtFwpV4AddrAndMask{
+				addr: binary.BigEndian.Uint32(prefix.Addr().AsSlice()),
+				mask: ^uint32(0) << (32 - prefix.Bits()),
+			})
+		} else if prefix.Addr().Is6() {
+			v6Masks = append(v6Masks, wtFwpV6AddrAndMask{prefix.Addr().As16(), uint8(prefix.Bits())})
+		}
+	}
+	// Both slices were preallocated, so element pointers stay valid.
+	for i := range v4Masks {
+		conditionsV4 = append(conditionsV4, wtFwpmFilterCondition0{
+			fieldKey:  cFWPM_CONDITION_IP_REMOTE_ADDRESS,
+			matchType: cFWP_MATCH_EQUAL,
+			conditionValue: wtFwpConditionValue0{
+				_type: cFWP_V4_ADDR_MASK,
+				value: uintptr(unsafe.Pointer(&v4Masks[i])),
+			},
+		})
+	}
+	for i := range v6Masks {
+		conditionsV6 = append(conditionsV6, wtFwpmFilterCondition0{
+			fieldKey:  cFWPM_CONDITION_IP_REMOTE_ADDRESS,
+			matchType: cFWP_MATCH_EQUAL,
+			conditionValue: wtFwpConditionValue0{
+				_type: cFWP_V6_ADDR_MASK,
+				value: uintptr(unsafe.Pointer(&v6Masks[i])),
+			},
+		})
+	}
+
+	add := func(name string, layer windows.GUID, conditions []wtFwpmFilterCondition0) error {
+		if len(conditions) == 0 {
+			return nil
+		}
+		displayData, err := createWtFwpmDisplayData0(name, "")
+		if err != nil {
+			return wrapErr(err)
+		}
+		filter := wtFwpmFilter0{
+			displayData:         *displayData,
+			providerKey:         &baseObjects.provider,
+			layerKey:            layer,
+			subLayerKey:         baseObjects.filters,
+			weight:              filterWeight(weight),
+			numFilterConditions: uint32(len(conditions)),
+			filterCondition:     (*wtFwpmFilterCondition0)(unsafe.Pointer(&conditions[0])),
+			action: wtFwpmAction0{
+				_type: cFWP_ACTION_PERMIT,
+			},
+		}
+		filterID := uint64(0)
+		err = fwpmFilterAdd0(session, &filter, 0, &filterID)
+		if err != nil {
+			return wrapErr(err)
+		}
+		return nil
+	}
+
+	err := add("Permit outbound to exceptions (IPv4)", cFWPM_LAYER_ALE_AUTH_CONNECT_V4, conditionsV4)
+	if err == nil {
+		err = add("Permit inbound from exceptions (IPv4)", cFWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4, conditionsV4)
+	}
+	if err == nil {
+		err = add("Permit outbound to exceptions (IPv6)", cFWPM_LAYER_ALE_AUTH_CONNECT_V6, conditionsV6)
+	}
+	if err == nil {
+		err = add("Permit inbound from exceptions (IPv6)", cFWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6, conditionsV6)
+	}
+	runtime.KeepAlive(v4Masks)
+	runtime.KeepAlive(v6Masks)
+	return err
+}
+
 func permitDHCPIPv4(session uintptr, baseObjects *baseObjects, weight uint8) error {
 	//
 	// #1 Outbound DHCP request on IPv4.

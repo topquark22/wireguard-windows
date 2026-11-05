@@ -35,6 +35,7 @@ func (service *tunnelService) Execute(args []string, r <-chan svc.ChangeRequest,
 	var watcher *interfaceWatcher
 	var adapter *driver.Adapter
 	var luid winipcfg.LUID
+	var bypassRoutes []bypassRoute
 	var config *conf.Config
 	var err error
 	serviceError := services.ErrorSuccess
@@ -86,6 +87,7 @@ func (service *tunnelService) Execute(args []string, r <-chan svc.ChangeRequest,
 		if watcher != nil {
 			watcher.Destroy()
 		}
+		removeBypassRoutes(bypassRoutes)
 		if adapter != nil {
 			adapter.Close()
 		}
@@ -192,6 +194,7 @@ func (service *tunnelService) Execute(args []string, r <-chan svc.ChangeRequest,
 		serviceError = services.ErrorFirewall
 		return
 	}
+	bypassRoutes = addBypassRoutes(config, luid)
 
 	log.Println("Dropping privileges")
 	err = elevate.DropAllPrivileges(true)

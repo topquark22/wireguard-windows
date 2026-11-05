@@ -303,6 +303,18 @@ func FromWgQuick(s, name string) (*Config, error) {
 					return nil, err
 				}
 				conf.Interface.TableOff = tableOff
+			case "killswitchexceptions":
+				prefixes, err := splitList(val)
+				if err != nil {
+					return nil, err
+				}
+				for _, prefix := range prefixes {
+					p, err := parseIPCidr(prefix)
+					if err != nil {
+						return nil, err
+					}
+					conf.Interface.KillSwitchExceptions = append(conf.Interface.KillSwitchExceptions, p)
+				}
 			default:
 				return nil, &ParseError{l18n.Sprintf("Invalid key for [Interface] section"), key}
 			}
@@ -433,6 +445,8 @@ func FromDriverConfiguration(interfaze *driver.Interface, existingConfig *Config
 			PreDown:   existingConfig.Interface.PreDown,
 			PostDown:  existingConfig.Interface.PostDown,
 			TableOff:  existingConfig.Interface.TableOff,
+
+			KillSwitchExceptions: existingConfig.Interface.KillSwitchExceptions,
 		},
 	}
 	if interfaze.Flags&driver.InterfaceHasPrivateKey != 0 {

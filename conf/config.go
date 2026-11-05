@@ -53,6 +53,8 @@ type Interface struct {
 	PostDown   string
 	TableOff   bool
 
+	KillSwitchExceptions []netip.Prefix
+
 	Comments SectionComments
 }
 

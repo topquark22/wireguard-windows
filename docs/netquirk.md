@@ -14,6 +14,7 @@ If an interface has only one peer, and that peer contains an Allowed IP in `/0`,
 - If the configuration specifies DNS servers, then packets sent to port `53` are only permitted if they are to one of those DNS servers. This is to prevent Windows' [ordinary multihomed DNS resolution behavior](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/dd197552%28v%3Dws.10%29), so that DNS queries only go to the DNS server specified, rather than multiple DNS servers.
 - Loopback packets are permitted, and packets actually going through the WireGuard tunnel are permitted.
 - DHCP for IPv4 and IPv6 and NDP for IPv6 are permitted.
+- Traffic to and from any network listed in the optional `KillSwitchExceptions` setting of the `[Interface]` section (a comma-separated list of CIDRs, e.g. `KillSwitchExceptions = 10.1.1.0/24, 192.168.2.0/24`) is permitted. For each exception that is not directly on-link, the tunnel service also adds a route via the gateway that would have been used without the tunnel (for example, the LAN router), so that the traffic bypasses the tunnel; this route is removed when the tunnel stops and is not updated if the gateway changes while the tunnel is up.
 - All other packets are blocked.
 
 This prevents traffic from leaking outside the tunnel.

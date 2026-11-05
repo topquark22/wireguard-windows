@@ -173,5 +173,5 @@ func enableFirewall(conf *conf.Config, luid winipcfg.LUID) error {
 		}
 	}
 	log.Println("Enabling firewall rules")
-	return firewall.EnableFirewall(uint64(luid), doNotRestrict, conf.Interface.DNS)
+	return firewall.EnableFirewall(uint64(luid), doNotRestrict, conf.Interface.DNS, conf.Interface.KillSwitchExceptions)
 }

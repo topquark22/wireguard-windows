@@ -41,6 +41,8 @@ peer: JRI8Xc0zKP9kXk8qP84NdUQA04h6DLfFbwJn4g+/PFs=
 
 The `PreUp`, `PostUp`, `PreDown`, and `PostDown` configuration options may be specified to run custom commands at various points in the lifetime of a tunnel service, but only if the correct registry key is set. [See `adminregistry.md` for information.](adminregistry.md)
 
+When a tunnel has a single peer with a `/0` allowed IP, the kill-switch blocks all traffic outside the tunnel. The `KillSwitchExceptions` option in the `[Interface]` section lists networks that are exempt from this and reach the network directly instead, such as a local LAN or a modem's management address (e.g. `KillSwitchExceptions = 10.1.1.0/24, 192.168.2.0/24`). [See `netquirk.md` for details.](netquirk.md)
+
 ### Manager Service
 
 The manager service may be installed or uninstalled using the commands:
