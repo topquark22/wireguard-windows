@@ -257,6 +257,35 @@ func TestCommentDefaultValuedKeys(t *testing.T) {
 	}
 }
 
+func TestKillSwitchExceptions(t *testing.T) {
+	input := "[Interface]\nPrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=\n" +
+		"KillSwitchExceptions = 10.1.1.0/24, 192.168.2.1, fd00::/8\n" +
+		"[Peer]\nPublicKey = xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=\nAllowedIPs = 0.0.0.0/0\n"
+	c, err := FromWgQuick(input, "test")
+	if !noError(t, err) {
+		return
+	}
+	equal(t, []netip.Prefix{
+		netip.MustParsePrefix("10.1.1.0/24"),
+		netip.MustParsePrefix("192.168.2.1/32"),
+		netip.MustParsePrefix("fd00::/8"),
+	}, c.Interface.KillSwitchExceptions)
+
+	serialized := c.ToWgQuick()
+	if !strings.Contains(serialized, "KillSwitchExceptions = 10.1.1.0/24, 192.168.2.1/32, fd00::/8") {
+		t.Errorf("KillSwitchExceptions missing from output:\n%s", serialized)
+	}
+	reparsed, err := FromWgQuick(serialized, "test")
+	if noError(t, err) {
+		equal(t, c, reparsed)
+	}
+
+	_, err = FromWgQuick("[Interface]\nPrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=\nKillSwitchExceptions = bogus\n", "test")
+	if err == nil {
+		t.Error("expected an error for an invalid KillSwitchExceptions value")
+	}
+}
+
 func TestRedactClearsComments(t *testing.T) {
 	input := "[Interface]\nPrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk= # backup SECRET\n" +
 		"# note SECRET\n[Peer]\nPublicKey = xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=\nAllowedIPs = 0.0.0.0/0\n# trailing SECRET\n"
